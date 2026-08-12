@@ -312,7 +312,6 @@
       .glass-card { padding: 10px !important; margin-bottom: 6px !important; }
       .card-title-bar { margin-bottom: 6px !important; }
       
-      /* Układ Poziomy dla panelu kierowcy */
       .kurs-layout-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -576,14 +575,14 @@
       <div id="view-driver-grafik" class="view-section">
         <div class="glass-card" style="height: 100%; display: flex; flex-direction: column;">
           <div class="card-title-bar">
-            <h2>Miesięczny Grafik Służb - Sierpień 2026</h2>
+            <h2>Miesięczny Grafik Służb</h2>
             <button class="btn-maroon btn-drive-start" style="width: auto; padding: 0 16px;" onclick="pokazWidok('driver-kurs'); rozpoczniWyjazdNaLinie();">▶ Rozpocznij Kurs (WYJ)</button>
           </div>
           <div class="calendar-grid" id="driver-cal-grid" style="flex: 1;"></div>
         </div>
       </div>
 
-      <!-- EDYCJA DLA KURS KIEROWCY (OPTYMALIZACJA NA POZIOM/PION) -->
+      <!-- WIDOK KURSU KIEROWCY -->
       <div id="view-driver-kurs" class="view-section">
         <div class="glass-card" id="kurs-main-card" style="height: 100%; display: flex; flex-direction: column; position: relative;">
           
@@ -615,7 +614,7 @@
 
           <div id="cooldown-alert-bar" style="color: var(--accent-cream); font-size: 12px; font-weight: bold; margin-top: 4px; display: none;"></div>
 
-          <!-- GŁÓWNA SIATKA KURSU (POZIOMO = 2 KOLUMNY, PIONOWO = 1 KOLUMNA) -->
+          <!-- GŁÓWNA SIATKA KURSU -->
           <div class="kurs-layout-grid">
             <div class="stops-scroll" id="stops-list"></div>
 
@@ -635,7 +634,7 @@
                 <button class="btn-maroon" style="width: auto; height: 34px; padding: 0 12px; font-size: 11px; margin: 0;" onclick="wyglosWybranaZapowiedz()">Wygłoś</button>
               </div>
 
-              <!-- PRZYCISKI AKCJI (GŁÓWNY SYSTEM STEROWANIA JAZDĄ) -->
+              <!-- PRZYCISKI AKCJI -->
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
                 <button id="btn-start-drive" class="btn-maroon btn-drive-start" style="width: 100%; font-size: 11px;" onclick="rozpoczniWyjazdNaLinie()">ZACZNIJ KURS</button>
                 <button id="btn-next-stop" class="btn-maroon btn-drive-next" style="width: 100%; font-size: 11px;" onclick="registerNextStop()">NASTĘPNY PRZYSTANEK ✓</button>
@@ -648,7 +647,7 @@
         </div>
       </div>
 
-      <!-- EDYCJA FORMULARZA ZGŁOSZEŃ -->
+      <!-- FORMULARZ ZGŁOSZEŃ -->
       <div id="view-driver-prosby" class="view-section">
         <div class="glass-card" style="height: 100%; display: flex; flex-direction: column;">
           <h2>Zgłoszenie / Prośba do Dyspozytora</h2>
@@ -829,6 +828,27 @@
     if ('speechSynthesis' in window) {
       window.speechSynthesis.onvoiceschanged = loadVoices;
       loadVoices();
+    }
+
+    function czytajTekst(tekst, isOfficial = false) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(tekst);
+        msg.lang = 'pl-PL';
+        
+        if (availableVoices.length > 0) {
+          const plVoice = availableVoices.find(v => v.lang.includes('pl'));
+          if (plVoice) msg.voice = plVoice;
+        }
+
+        if (isOfficial) isStopAnnouncementPlaying = true;
+
+        msg.onend = () => {
+          if (isOfficial) isStopAnnouncementPlaying = false;
+        };
+
+        window.speechSynthesis.speak(msg);
+      }
     }
 
     function startLiveClock() {
@@ -1285,7 +1305,7 @@
                 <span style="font-size: 10px; color: var(--text-dim);">Kółka: ${k.completedLoops}/${k.assignedLoops}</span>
                 <div>
                   <button style="background: rgba(255,255,255,0.1); border: none; color: #fff; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 10px;" onclick="zmienHasloKierowcy(${k.id})">🔑 Hasło</button>
-                  <button style="background: none; border: none; color: var(--accent-cream); cursor: pointer; font-size: 10px;" onclick="usunKierowce(${k.id})">🗑️ Usun</button>
+                  <button style="background: none; border: none; color: var(--accent-cream); cursor: pointer; font-size: 10px;" onclick="usunKierowce(${k.id})">🗑️ Usuń</button>
                 </div>
               </div>
             </div>
@@ -2141,38 +2161,13 @@
         const sluzba = grafikBaza[key];
 
         grid.innerHTML += `
-          <div class="day-box ${sluzba ? 'work' : ''}">
-            <strong style="font-size: 11px;">${i}</strong>
-            <span style="font-size: 9px; font-weight: 700; color: ${sluzba ? 'var(--accent-cream)' : '#888'}">
+          <div class="day-box ${sluzba ? 'has-shift' : ''}">
+            <strong style="font-size:11px;">${i}</strong>
+            <div style="font-size:9px; color:${sluzba ? 'var(--accent-cream)' : '#888'};">
               ${sluzba ? `${sluzba.linia} (${sluzba.koleka}k)` : 'WOLNE'}
-            </span>
+            </div>
           </div>
         `;
-      }
-    }
-
-    function czytajTekst(tekst, isStopAnnouncement = false) {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(tekst);
-        utterance.lang = 'pl-PL';
-        utterance.rate = 0.95; 
-        utterance.pitch = 1.0;
-
-        if (isStopAnnouncement) {
-          isStopAnnouncementPlaying = true;
-          utterance.onend = () => { isStopAnnouncementPlaying = false; };
-          utterance.onerror = () => { isStopAnnouncementPlaying = false; };
-        }
-
-        if (availableVoices.length === 0) {
-          availableVoices = window.speechSynthesis.getVoices();
-        }
-
-        const bestVoice = availableVoices.find(v => v.lang.startsWith('pl') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Agnieszka') || v.name.includes('Ewa') || v.name.includes('Paulina') || v.name.includes('Marek')));
-        if (bestVoice) utterance.voice = bestVoice;
-
-        window.speechSynthesis.speak(utterance);
       }
     }
   </script>
